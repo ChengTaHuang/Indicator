@@ -5,35 +5,29 @@
         xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@android:color/darker_gray"
         tools:context=".MainActivity">
 
-    <!--<com.kotlin.indicator.Triangle-->
-    <!--android:background="@android:color/white"-->
-    <!--android:id="@+id/triangle"-->
-    <!--android:layout_width="0dp"-->
-    <!--android:layout_height="wrap_content"-->
-    <!--app:layout_constraintStart_toStartOf="parent"-->
-    <!--app:layout_constraintEnd_toEndOf="parent"-->
-    <!--app:layout_constraintTop_toTopOf="parent">-->
+    <com.kotlin.indicator.Triangle
+            android:background="@android:color/white"
+            android:id="@+id/triangle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
 
-    <!--</com.kotlin.indicator.Triangle>-->
+    </com.kotlin.indicator.Triangle>
+
+
 
     <com.kotlin.indicator.horizontal.HorizontalIndicator
             android:id="@+id/horizontalIndicator"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/triangle">
 
     </com.kotlin.indicator.horizontal.HorizontalIndicator>
-    <!--<com.kotlin.indicator.horizontal.HorizontalIndicator-->
-    <!--android:id="@+id/horizontalIndicator"-->
-    <!--android:layout_width="match_parent"-->
-    <!--android:layout_height="wrap_content"-->
-    <!--app:layout_constraintLeft_toLeftOf="parent"-->
-    <!--app:layout_constraintTop_toBottomOf="@+id/triangle">-->
 
-    <!--</com.kotlin.indicator.horizontal.HorizontalIndicator>-->
 </android.support.constraint.ConstraintLayout>

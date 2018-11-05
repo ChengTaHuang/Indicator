@@ -16,6 +16,8 @@ import kotlinx.android.synthetic.main.indicator.view.*
 import org.w3c.dom.Text
 import android.graphics.drawable.Drawable
 import android.support.v4.content.ContextCompat
+import android.util.DisplayMetrics
+import android.util.Log
 import android.view.animation.*
 import io.reactivex.CompletableSource
 import io.reactivex.Observable
@@ -47,11 +49,13 @@ class Triangle : ConstraintLayout {
 
     constructor(context: Context) : super(context) {
         view = View.inflate(context, R.layout.indicator, this)
+        if(isInEditMode) return
         initViews(view)
     }
 
     constructor(context: Context, attrs: AttributeSet) : super(context, attrs) {
         view = View.inflate(context, R.layout.indicator, this)
+        if(isInEditMode) return
         initViews(view)
     }
 
@@ -134,6 +138,9 @@ class Triangle : ConstraintLayout {
         super.onSizeChanged(w, h, oldw, oldh)
 
         calculateIndex(width)
+
+        if(isInEditMode) return
+
         moveIndicator(firstX)
     }
 

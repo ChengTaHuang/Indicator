@@ -6,6 +6,7 @@ import android.support.annotation.StringRes
 import android.support.constraint.ConstraintSet
 import android.util.AttributeSet
 import android.util.DisplayMetrics
+import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.widget.HorizontalScrollView
@@ -37,23 +38,88 @@ class HorizontalIndicator : HorizontalScrollView, IHorizontalIndicator {
 
     constructor(context: Context, attrs: AttributeSet) : super(context, attrs) {
         view = View.inflate(context, R.layout.horizontal_indicator, this)
+
         initViews(view)
+        if(isInEditMode){
+            initFakeView(view)
+        }
     }
 
     constructor(context: Context, attrs: AttributeSet, defStyle: Int) : super(context, attrs, defStyle) {
         view = View.inflate(context, R.layout.horizontal_indicator, this)
         initViews(view)
+        if(isInEditMode){
+            initFakeView(view)
+        }
     }
 
     private fun initViews(view: View) {
 
         isVerticalScrollBarEnabled = false
         isHorizontalScrollBarEnabled = false
-        overScrollMode = View.OVER_SCROLL_NEVER;
+        overScrollMode = View.OVER_SCROLL_NEVER
 
         indicator = ImageView(context)
         indicator.id = generateViewId()
         indicator.setBackgroundResource(R.drawable.triangle)
+    }
+
+    private fun initFakeView(view: View){
+
+        val textRes = R.string.app_name
+        //new textView
+        val textView = TextView(context)
+        textView.id = generateViewId()
+        textView.text = context.getText(textRes)
+        textView.minWidth = dpToPx(100)
+        textView.gravity = Gravity.CENTER_HORIZONTAL
+        constraintLayout.addView(textView)
+        //new imageView
+        val imageView = ImageView(context)
+        imageView.id = generateViewId()
+        imageView.minimumWidth = dpToPx(100)
+        imageView.maxHeight = dpToPx(100)
+        imageView.setPadding(dpToPx(5), dpToPx(5), dpToPx(5), dpToPx(5))
+
+        constraintLayout.addView(imageView)
+
+        //add indicator
+        constraintLayout.addView(indicator)
+
+        val constraintSet = ConstraintSet()
+        constraintSet.clone(constraintLayout)
+
+        //textView
+        constraintSet.constrainWidth(textView.id, ConstraintSet.MATCH_CONSTRAINT)
+        constraintSet.constrainHeight(textView.id, ConstraintSet.WRAP_CONTENT)
+        constraintSet.connect(textView.id, ConstraintSet.START, constraintLayout.id, ConstraintSet.START, dpToPx(8))
+        constraintSet.connect(textView.id, ConstraintSet.TOP, imageView.id, ConstraintSet.BOTTOM, 0)
+
+        //imageView
+        constraintSet.setDimensionRatio(imageView.id, "1:1")
+        constraintSet.constrainWidth(imageView.id, ConstraintSet.WRAP_CONTENT)
+        constraintSet.constrainHeight(imageView.id, ConstraintSet.MATCH_CONSTRAINT)
+        constraintSet.connect(imageView.id, ConstraintSet.START, textView.id, ConstraintSet.START, 0)
+        constraintSet.connect(imageView.id, ConstraintSet.TOP, constraintLayout.id, ConstraintSet.TOP, dpToPx(10))
+        constraintSet.connect(imageView.id, ConstraintSet.END, textView.id, ConstraintSet.END, 0)
+
+        constraintSet.constrainWidth(indicator.id, dpToPx(10))
+        constraintSet.constrainHeight(indicator.id, dpToPx(10))
+        constraintSet.connect(indicator.id, ConstraintSet.TOP , textView.id , ConstraintSet.BOTTOM)
+        constraintSet.connect(indicator.id, ConstraintSet.BOTTOM , constraintLayout.id , ConstraintSet.BOTTOM)
+
+        constraintSet.applyTo(constraintLayout)
+
+        imageIdList.add(imageView.id)
+        textIdList.add(textView.id)
+
+        val textWidth =  Math.max(getTextWidth(textView , textRes) , dpToPx(100).toFloat())
+        textXWithList.add(textWidth)
+
+        val textCenterX = textWidth / 2
+        indicatorPositionXMap[imageView.id] = dpToPx(8) + textCenterX
+
+        indicator.x = indicatorPositionXMap[imageView.id]!!
     }
 
     override fun addViews(data: List<ViewData>) {

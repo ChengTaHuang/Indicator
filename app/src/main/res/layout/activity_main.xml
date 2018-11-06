@@ -7,18 +7,6 @@
         android:layout_height="match_parent"
         tools:context=".MainActivity">
 
-    <com.kotlin.indicator.Triangle
-            android:background="@android:color/white"
-            android:id="@+id/triangle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
-
-    </com.kotlin.indicator.Triangle>
-
-
 
     <com.kotlin.indicator.horizontal.HorizontalIndicator
             android:id="@+id/horizontalIndicator"
@@ -26,7 +14,7 @@
             android:layout_height="wrap_content"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/triangle">
+            app:layout_constraintTop_toTopOf="parent">
 
     </com.kotlin.indicator.horizontal.HorizontalIndicator>
 

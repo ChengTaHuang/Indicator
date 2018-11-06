@@ -2,6 +2,7 @@ package com.kotlin.indicator.extension
 
 import android.support.v4.content.ContextCompat
 import android.support.v4.view.ViewCompat
+import android.util.Log
 import android.view.View
 import android.view.animation.OvershootInterpolator
 import com.kotlin.indicator.R
@@ -26,7 +27,7 @@ fun View.fadeIn(duration: Long): Completable {
     val animationSubject = CompletableSubject.create()
     return animationSubject.doOnSubscribe {
         this.alpha = 0.2f
-        this.background = ContextCompat.getDrawable(context , R.drawable.circle_gray)
+        this.background = ContextCompat.getDrawable(context , R.drawable.circle_blue)
         ViewCompat.animate(this)
             .setDuration(duration)
             .alpha(1f)

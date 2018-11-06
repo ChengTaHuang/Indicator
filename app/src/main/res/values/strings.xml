@@ -2,5 +2,8 @@
     <string name="app_name">Indicator</string>
 
     <string name="temp">"123"</string>
-    <string name="temp1">"12312321312321321312321"</string>
+    <string name="temp1">"123456789"</string>
+    <string name="temp2">"123456789123456789"</string>
+    <string name="temp3">"1233123123213213"</string>
+    <string name="temp4">"12345"</string>
 </resources>

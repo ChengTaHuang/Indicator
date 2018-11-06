@@ -4,6 +4,6 @@
 
 # Description
 
-1.You can click image to selected target.
+1.You can click on the image to the selected target.
 
-2.Swipe screen , the indicator will automatically follow the recent target.
+2.After swiping the screen , the indicator will automatically follow the recent target.

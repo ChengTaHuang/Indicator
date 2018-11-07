@@ -2,6 +2,7 @@ package com.kotlin.indicator
 
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
+import android.util.Log
 import com.kotlin.indicator.horizontal.HorizontalIndicator
 import kotlinx.android.synthetic.main.activity_main.*
 
@@ -35,6 +36,11 @@ class MainActivity : AppCompatActivity() {
         data.add(HorizontalIndicator.ViewData(R.drawable.ic_child , R.string.temp3))
 
         horizontalIndicator.addViews(data)
-
+        horizontalIndicator.setOnClickItemListener {
+            Log.i("check" , "$it")
+        }
+        horizontalIndicator.setOnAutoMoveListener {
+            Log.i("check" , "$it")
+        }
     }
 }

@@ -7,7 +7,6 @@ import android.support.annotation.StringRes
 import android.support.constraint.ConstraintSet
 import android.util.AttributeSet
 import android.util.DisplayMetrics
-import android.util.Log
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
@@ -31,38 +30,51 @@ class HorizontalIndicator : HorizontalScrollView, IHorizontalIndicator {
     private val view: View
     private val imageIdList = mutableListOf<Int>()
     private val textIdList = mutableListOf<Int>()
-    private lateinit var indicator : ImageView
-    private val indicatorPositionXMap = linkedMapOf<Int , Float>()
+    private val textMinimumWidth = dpToPx(100)
+    private val imageWidth = textMinimumWidth
+    private val imageHeight = textMinimumWidth
+    private lateinit var indicator: ImageView
+    private val indicatorPositionXMap = linkedMapOf<Int, Float>()
     private val textXWithList = mutableListOf<Float>()
-    private var screenWidth : Int = 0
+    private var screenWidth: Int = 0
 
     private lateinit var scrollerTask: Runnable
     private var indicatorXRecord: Int = 0
-    private var direction : Direction = Direction.NONE
+    private var direction: Direction = Direction.NONE
 
-    sealed class Direction{
+    sealed class Direction {
         object LEFT : Direction()
         object RIGHT : Direction()
         object NONE : Direction()
     }
 
+    private var clickCallback: ((Int) -> Unit)? = null
+    fun setOnClickItemListener(callback: (Int) -> Unit) {
+        this.clickCallback = callback
+    }
+
+    private var authMoveCallback: ((Int) -> Unit)? = null
+    fun setOnAutoMoveListener(callback: (Int) -> Unit) {
+        this.authMoveCallback = callback
+    }
+
     constructor(context: Context) : super(context) {
         view = View.inflate(context, R.layout.horizontal_indicator, this)
-        initViews(view)
+        initViews()
     }
 
     constructor(context: Context, attrs: AttributeSet) : super(context, attrs) {
         view = View.inflate(context, R.layout.horizontal_indicator, this)
 
-        initViews(view)
-        if(isInEditMode){
-            initFakeView(view)
-        }else{
+        initViews()
+        if (isInEditMode) {
+            initFakeView()
+        } else {
             scrollerTask = Runnable {
                 val curX = scrollX
                 if (indicatorXRecord - curX == 0) {
-                    if(direction != Direction.NONE) {
-                        autoMoveIndicator(indicator , direction , curX)
+                    if (direction != Direction.NONE) {
+                        autoMoveIndicator(indicator, direction, curX)
                     }
                     direction = Direction.NONE
                 } else {
@@ -75,13 +87,13 @@ class HorizontalIndicator : HorizontalScrollView, IHorizontalIndicator {
 
     constructor(context: Context, attrs: AttributeSet, defStyle: Int) : super(context, attrs, defStyle) {
         view = View.inflate(context, R.layout.horizontal_indicator, this)
-        initViews(view)
-        if(isInEditMode){
-            initFakeView(view)
+        initViews()
+        if (isInEditMode) {
+            initFakeView()
         }
     }
 
-    private fun initViews(view: View) {
+    private fun initViews() {
 
         isVerticalScrollBarEnabled = false
         isHorizontalScrollBarEnabled = false
@@ -92,7 +104,7 @@ class HorizontalIndicator : HorizontalScrollView, IHorizontalIndicator {
         indicator.setBackgroundResource(R.drawable.triangle)
     }
 
-    private fun initFakeView(view: View){
+    private fun initFakeView() {
 
         val params = constraintLayout.layoutParams as FrameLayout.LayoutParams
         params.height = dpToPx(129)
@@ -100,17 +112,13 @@ class HorizontalIndicator : HorizontalScrollView, IHorizontalIndicator {
 
         val textRes = R.string.app_name
         //new textView
-        val textView = TextView(context)
-        textView.id = generateViewId()
-        textView.text = context.getText(textRes)
-        textView.minWidth = dpToPx(100)
-        textView.gravity = Gravity.CENTER_HORIZONTAL
+        val textView = createTextView(textRes)
         constraintLayout.addView(textView)
         //new imageView
         val imageView = ImageView(context)
         imageView.id = generateViewId()
-        imageView.minimumWidth = dpToPx(100)
-        imageView.maxHeight = dpToPx(100)
+        imageView.minimumWidth = imageWidth
+        imageView.maxHeight = imageHeight
         imageView.setPadding(dpToPx(5), dpToPx(5), dpToPx(5), dpToPx(5))
         imageView.setBackgroundResource(R.drawable.circle_gray)
 
@@ -138,15 +146,15 @@ class HorizontalIndicator : HorizontalScrollView, IHorizontalIndicator {
 
         constraintSet.constrainWidth(indicator.id, dpToPx(10))
         constraintSet.constrainHeight(indicator.id, dpToPx(10))
-        constraintSet.connect(indicator.id, ConstraintSet.TOP , textView.id , ConstraintSet.BOTTOM)
-        constraintSet.connect(indicator.id, ConstraintSet.BOTTOM , constraintLayout.id , ConstraintSet.BOTTOM)
+        constraintSet.connect(indicator.id, ConstraintSet.TOP, textView.id, ConstraintSet.BOTTOM)
+        constraintSet.connect(indicator.id, ConstraintSet.BOTTOM, constraintLayout.id, ConstraintSet.BOTTOM)
 
         constraintSet.applyTo(constraintLayout)
 
         imageIdList.add(imageView.id)
         textIdList.add(textView.id)
 
-        val textWidth =  Math.max(getTextWidth(textView , textRes) , dpToPx(100).toFloat())
+        val textWidth = Math.max(getTextWidth(textView, textRes), textMinimumWidth.toFloat())
         textXWithList.add(textWidth)
 
         val textCenterX = textWidth / 2
@@ -158,9 +166,9 @@ class HorizontalIndicator : HorizontalScrollView, IHorizontalIndicator {
     override fun addViews(data: List<ViewData>) {
         for (value in data) {
             if (imageIdList.isEmpty()) {
-                addView(value.imageRes, value.textRes)
+                addFirstView(value.imageRes, value.textRes)
             } else {
-                addAfterFirstViews(value.imageRes , value.textRes)
+                addAfterFirstView(value.imageRes, value.textRes)
             }
         }
     }
@@ -171,6 +179,7 @@ class HorizontalIndicator : HorizontalScrollView, IHorizontalIndicator {
         screenWidth = measuredWidth
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(ev: MotionEvent): Boolean {
         if (ev.action == MotionEvent.ACTION_UP) {
             startScrollerTask()
@@ -186,91 +195,73 @@ class HorizontalIndicator : HorizontalScrollView, IHorizontalIndicator {
 
     override fun onScrollChanged(l: Int, t: Int, oldl: Int, oldt: Int) {
         super.onScrollChanged(l, t, oldl, oldt)
-        direction = if(l - oldl > 0) Direction.LEFT else Direction.RIGHT
+        direction = if (l - oldl > 0) Direction.LEFT else Direction.RIGHT
     }
 
     @SuppressLint("CheckResult")
-    private fun autoMoveIndicator(indicator : ImageView , direction: Direction, curX : Int){
+    private fun autoMoveIndicator(indicator: ImageView, direction: Direction, curX: Int) {
         val curViewWidth = screenWidth + curX
-        if(direction == Direction.LEFT){
-            if(curX >= indicator.x){
+        if (direction == Direction.LEFT) {
+            if (curX >= indicator.x) {
 
-                for(x in indicatorPositionXMap.iterator()){
-                    if(curX < x.value){
-                        var flow = indicator.moveX(x.value , 300)
+                for (x in indicatorPositionXMap.iterator()) {
+                    if (curX < x.value) {
+                        var flow = indicator.moveX(x.value, 300)
 
                         imageIdList
                             .forEach { id ->
                                 val imageView = findViewById<ImageView>(id)
 
-                                flow = if(x.key == id){
+                                flow = if (x.key == id) {
                                     flow.together(imageView.fadeIn(500))
-                                }else {
+                                } else {
                                     flow.together(imageView.beNormal())
                                 }
+
+                                if(x.key == id) authMoveCallback?.invoke(imageIdList.indexOf(id))
                             }
 
-                        flow.subscribe({
-                            Log.i("check" , "complete")
-                        } , {
-                            Log.i("check" , it.message)
-                        })
+                        flow.subscribe()
 
                         break
                     }
                 }
-            }else{
+            } else {
                 postDelayed(scrollerTask, 10)
             }
-        }else if(direction == Direction.RIGHT){
+        } else if (direction == Direction.RIGHT) {
             if (curViewWidth <= indicator.x) {
-                var flow : Completable? = null
-                for(i in 1 until imageIdList.size){
+                var flow: Completable? = null
+                for (i in 1 until imageIdList.size) {
                     val frontId = imageIdList[i - 1]
                     val id = imageIdList[i]
                     val frontImageView = findViewById<ImageView>(frontId)
                     val imageView = findViewById<ImageView>(id)
 
-                    if(indicatorPositionXMap[frontId]!! < curViewWidth && indicatorPositionXMap[id]!! >= curViewWidth){
-                        flow = indicator.moveX(indicatorPositionXMap[frontId]!! , 300)
+                    if (indicatorPositionXMap[frontId]!! < curViewWidth && indicatorPositionXMap[id]!! >= curViewWidth) {
+                        flow = indicator.moveX(indicatorPositionXMap[frontId]!!, 300)
                             .together(frontImageView.fadeIn(500))
                             .together(imageView.beNormal())
-                    }else if(indicatorPositionXMap[frontId]!! > curViewWidth && indicatorPositionXMap[id]!! > curViewWidth){
+
+                        authMoveCallback?.invoke(i)
+                    } else if (indicatorPositionXMap[frontId]!! > curViewWidth && indicatorPositionXMap[id]!! > curViewWidth) {
                         flow = flow?.together(frontImageView.beNormal())
                     }
                 }
-                flow?.subscribe({
-                    Log.i("check", "complete")
-                }, {
-                    Log.i("check", it.message)
-                })
-            }else{
+                flow?.subscribe()
+            } else {
                 postDelayed(scrollerTask, 10)
             }
         }
     }
 
-    private fun addView(@NotNull @DrawableRes imageRes: Int, @NotNull @StringRes textRes: Int) {
+    private fun addFirstView(@NotNull @DrawableRes imageRes: Int, @NotNull @StringRes textRes: Int) {
         //new textView
-        val textView = TextView(context)
-        textView.id = generateViewId()
-        textView.text = context.getText(textRes)
-        textView.minWidth = dpToPx(100)
-        textView.gravity = Gravity.CENTER_HORIZONTAL
+        val textView = createTextView(textRes)
         constraintLayout.addView(textView)
         //new imageView
-        val imageView = ImageView(context)
-        imageView.id = generateViewId()
-        imageView.minimumWidth = dpToPx(100)
-        imageView.maxHeight = dpToPx(100)
-        imageView.setPadding(dpToPx(5), dpToPx(5), dpToPx(5), dpToPx(5))
-        imageView.setBackgroundResource(R.drawable.circle_gray)
+        val imageView = createImageView(imageRes)
         constraintLayout.addView(imageView)
-
-        GlideApp.with(view.context)
-            .load(imageRes)
-            .apply(RequestOptions.circleCropTransform())
-            .into(imageView)
 
         //add indicator
         constraintLayout.addView(indicator)
@@ -278,6 +269,7 @@ class HorizontalIndicator : HorizontalScrollView, IHorizontalIndicator {
         val constraintSet = ConstraintSet()
         constraintSet.clone(constraintLayout)
 
+        //setting constraintLayout relationship
         //textView
         constraintSet.constrainWidth(textView.id, ConstraintSet.MATCH_CONSTRAINT)
         constraintSet.constrainHeight(textView.id, ConstraintSet.WRAP_CONTENT)
@@ -294,75 +286,44 @@ class HorizontalIndicator : HorizontalScrollView, IHorizontalIndicator {
 
         constraintSet.constrainWidth(indicator.id, dpToPx(10))
         constraintSet.constrainHeight(indicator.id, dpToPx(10))
-        constraintSet.connect(indicator.id, ConstraintSet.TOP , textView.id , ConstraintSet.BOTTOM)
-        constraintSet.connect(indicator.id, ConstraintSet.BOTTOM , constraintLayout.id , ConstraintSet.BOTTOM)
+        constraintSet.connect(indicator.id, ConstraintSet.TOP, textView.id, ConstraintSet.BOTTOM)
+        constraintSet.connect(indicator.id, ConstraintSet.BOTTOM, constraintLayout.id, ConstraintSet.BOTTOM)
 
         constraintSet.applyTo(constraintLayout)
 
         imageIdList.add(imageView.id)
         textIdList.add(textView.id)
 
-        val textWidth =  Math.max(getTextWidth(textView , textRes) , dpToPx(100).toFloat())
+        val textWidth = Math.max(getTextWidth(textView, textRes), dpToPx(100).toFloat())
         textXWithList.add(textWidth)
 
         val textCenterX = textWidth / 2
         indicatorPositionXMap[imageView.id] = textCenterX - dpToPx(5)
 
         //第一次出現，直接減去指示器寬度
-        indicator.moveX(indicatorPositionXMap[imageView.id]!! , 0)
+        indicator.moveX(indicatorPositionXMap[imageView.id]!!, 0)
             .together(imageView.fadeIn(1)).subscribe()
 
-        imageView.setOnClickListener {view ->
-            var flow = indicator.moveX(indicatorPositionXMap[view.id]!! , 500)
-                .together(imageView.fadeIn(500))
-
-            imageIdList
-                .filter { it != view.id }
-                .forEach { id ->
-                    val imageView = findViewById<ImageView>(id)
-                    flow = flow.together(imageView.beNormal())
-                }
-
-            flow.subscribe({
-                Log.i("check" , "complete")
-            } , {
-                Log.i("check" , it.message)
-            })
-        }
     }
 
-    private fun getTextWidth(textView: TextView , textRes : Int) : Float{
+    private fun getTextWidth(textView: TextView, textRes: Int): Float {
         val textPaint = textView.paint
         return textPaint.measureText(context.getString(textRes))
     }
 
-    private fun addAfterFirstViews(@NotNull @DrawableRes imageRes: Int, @NotNull @StringRes textRes: Int){
-        val lastImageId = imageIdList[imageIdList.size - 1]
+    private fun addAfterFirstView(@NotNull @DrawableRes imageRes: Int, @NotNull @StringRes textRes: Int) {
         val lastTextId = textIdList[textIdList.size - 1]
 
-        val textView = TextView(context)
-        textView.id = generateViewId()
-        textView.text = context.getText(textRes)
-        textView.minWidth = dpToPx(100)
-        textView.gravity = Gravity.CENTER_HORIZONTAL
+        val textView = createTextView(textRes)
         constraintLayout.addView(textView)
 
-        val imageView = ImageView(context)
-        imageView.id = generateViewId()
-        imageView.minimumWidth = dpToPx(100)
-        imageView.maxHeight = dpToPx(100)
-        imageView.setPadding(dpToPx(5), dpToPx(5), dpToPx(5), dpToPx(5))
-        imageView.setBackgroundResource(R.drawable.circle_gray)
+        val imageView = createImageView(imageRes)
         constraintLayout.addView(imageView)
-
-        GlideApp.with(view.context)
-            .load(imageRes)
-            .apply(RequestOptions.circleCropTransform())
-            .into(imageView)
 
         val constraintSet = ConstraintSet()
         constraintSet.clone(constraintLayout)
 
+        //setting constraintLayout relationship
         //textView
         constraintSet.constrainWidth(textView.id, ConstraintSet.MATCH_CONSTRAINT)
         constraintSet.constrainHeight(textView.id, ConstraintSet.WRAP_CONTENT)
@@ -381,13 +342,13 @@ class HorizontalIndicator : HorizontalScrollView, IHorizontalIndicator {
         imageIdList.add(imageView.id)
         textIdList.add(textView.id)
 
-        val textWidth = Math.max(getTextWidth(textView , textRes) , dpToPx(100).toFloat())
+        val textWidth = Math.max(getTextWidth(textView, textRes), textMinimumWidth.toFloat())
         var textCenterX = textWidth / 2
 
         for ((index, value) in textXWithList.withIndex()) {
-            textCenterX += if(index == 0){
+            textCenterX += if (index == 0) {
                 value
-            }else{
+            } else {
                 (value + dpToPx(8))
             }
         }
@@ -395,26 +356,51 @@ class HorizontalIndicator : HorizontalScrollView, IHorizontalIndicator {
         textXWithList.add(textWidth)
 
         indicatorPositionXMap[imageView.id] = textCenterX + dpToPx(8) - dpToPx(5)
+    }
+
+    private fun createTextView(textRes: Int): TextView {
+        val textView = TextView(context)
+        with(textView) {
+            id = generateViewId()
+            text = context.getText(textRes)
+            minWidth = textMinimumWidth
+            gravity = Gravity.CENTER_HORIZONTAL
+        }
+
+        return textView
+    }
+
+    private fun createImageView(imageRes: Int): ImageView {
+        val imageView = ImageView(context)
+        with(imageView) {
+            id = generateViewId()
+            minimumWidth = imageWidth
+            maxHeight = imageHeight
+            setPadding(dpToPx(5), dpToPx(5), dpToPx(5), dpToPx(5))
+            setBackgroundResource(R.drawable.circle_gray)
+        }
+
+        GlideApp.with(view.context)
+            .load(imageRes)
+            .apply(RequestOptions.circleCropTransform())
+            .into(imageView)
 
         imageView.setOnClickListener { view ->
-
-            var flow = indicator.moveX(indicatorPositionXMap[view.id]!! , 500)
+            var flow = indicator.moveX(indicatorPositionXMap[view.id]!!, 500)
                 .together(imageView.fadeIn(500))
 
             imageIdList
                 .filter { it != view.id }
                 .forEach { id ->
-                    val imageView = findViewById<ImageView>(id)
-                    flow = flow.together(imageView.beNormal())
+                    flow = flow.together(findViewById<ImageView>(id).beNormal())
                 }
 
-            flow.subscribe({
-                Log.i("check" , "complete")
-            } , {
-                Log.i("check" , it.message)
-            })
+            flow.subscribe()
 
+            clickCallback?.invoke(imageIdList.indexOf(view.id))
         }
+
+        return imageView
     }
 
     private fun dpToPx(dp: Int): Int {
